@@ -1,0 +1,146 @@
+# =============================================================================
+#  Management Order — DEV  (fully self-contained)
+#
+#  Usage:
+#    Start : docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
+#    Stop  : docker compose -f docker-compose.dev.yml --env-file .env.dev down
+#    Wipe  : docker compose -f docker-compose.dev.yml --env-file .env.dev down -v
+#
+#  Services:
+#    mysql       — MySQL 8.0  → host port 3306
+#    redis       — Redis 7.2  → host port 6379
+#    phpmyadmin  — DB admin UI → http://localhost:8080
+#
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # MySQL 8.0
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: employee-management-mysql-dev
+
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword123
+      MYSQL_DATABASE: employee_management
+      MYSQL_USER: employeeuser
+      MYSQL_PASSWORD: employeepassword
+
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+
+    networks:
+      - employee-management-net-dev
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-uroot",
+          "-prootpassword123"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+  # ---------------------------------------------------------------------------
+  # Redis 7.2
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7.2-alpine
+
+    container_name: employee-management-redis-dev
+
+    ports:
+      - "6379:6379"
+
+    command:
+      - redis-server
+      - --save
+      - "60"
+      - "1"
+      - --loglevel
+      - warning
+
+    volumes:
+      - redis_data_dev:/data
+
+    networks:
+      - employee-management-net-dev
+
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+
+  # ---------------------------------------------------------------------------
+  # phpMyAdmin — DEV only
+  # ---------------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+
+    container_name: employee-management-phpmyadmin-dev
+
+    ports:
+      - "8080:80"
+
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword123
+      UPLOAD_LIMIT: 64M
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - employee-management-net-dev
+
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  employee-management-net-dev:
+    driver: bridge
+
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  mysql_data_dev:
+  redis_data_dev:

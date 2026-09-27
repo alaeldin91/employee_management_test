@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/employee_management?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    username: employeeuser
+    password: employeepassword
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8081
+
+app:
+  jwt:
+    secret: 8d9f0ef57a481b64f3a24e424eb243be1ffb17c8d6d8b0f0b34c361c388efa19
